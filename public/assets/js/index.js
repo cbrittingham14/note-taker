@@ -106,15 +106,12 @@ var handleRenderSaveBtn = function() {
 // Render's the list of note titles
 var renderNoteList = function(notes) {
   $noteList.empty();
-  console.log("notes before parse: ",notes);
+  
   notes = JSON.parse(notes);
-  // let noteArray = [notes];
-  // console.log("notes in index ", noteArray);
   var noteListItems = [];
 
   for (var i = 0; i < notes.length; i++) {
     var note = notes[i];
-    console.log("note in index ", note);
     var $li = $("<li class='list-group-item'>").data(note);
     var $span = $("<span>").text(note.title);
     var $delBtn = $(
