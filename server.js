@@ -23,12 +23,10 @@ app.get("/notes", function(req, res) {
 });
 
 app.get("/api/notes", function(req, res) {
-
   readDBFile().then(data => {
     res.json(data)})
-    .catch(err =>{console.log("returned reading error ", err)
-    res.json(false)
-  });
+    .catch(err => res.json(err)
+  );
 });
 
 app.post("/api/notes", function({ body }, res) {
@@ -56,8 +54,17 @@ app.post("/api/notes", function({ body }, res) {
 app.delete("/api/notes" + "*", function(req, res) {
 
   console.log("req route sliced :  ",req.originalUrl.slice(req.originalUrl.length - 3));
+  let urlID = req.originalUrl.slice(req.originalUrl.length - 3);
+  let index;
 
-  let index = req.originalUrl.slice(req.originalUrl.length - 1); //get index of note to delete
+  if(parseInt(urlID[0])){           //get index of note to delete
+    index = urlID;
+  } else if(parseInt(urlID[1])){
+    index = req.originalUrl.slice(req.originalUrl.length - 2);
+  } else{
+    index = req.originalUrl.slice(req.originalUrl.length - 1);
+  }
+  console.log("index ", index);
 
   readDBFile().then(data => {
     let array = JSON.parse(data);
