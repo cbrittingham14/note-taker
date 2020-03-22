@@ -14,14 +14,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static('public'));
 
+// start at the homepage
 app.get("/", function(req, res) {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
+//get the note list 
 app.get("/notes", function(req, res) {
   res.sendFile(path.join(__dirname, "public/notes.html"));
+  readDBFile().then(data => setIndex(JSON.parse(data))) // set noteIndex to highest existing index
+    .catch(err => res.json(err));
 });
 
+//return all existing notes
 app.get("/api/notes", function(req, res) {
   readDBFile().then(data => {
     res.json(data)})
@@ -29,6 +34,8 @@ app.get("/api/notes", function(req, res) {
   );
 });
 
+
+//Save new note
 app.post("/api/notes", function({ body }, res) {
 
   let newNote = {title: body.title, text: body.text, id: noteIndex};
@@ -36,51 +43,47 @@ app.post("/api/notes", function({ body }, res) {
   readDBFile().then(data => {
       if(data){
         array = JSON.parse(data);
+        setIndex(array);
       }
-      
       newNote.id = noteIndex;
       noteIndex++;
-      console.log("note index: ", noteIndex);
-      console.log("array", array);
       array.push(newNote);
-      fs.writeFile(`${__dirname}/db/db.json`, JSON.stringify(array), err => console.log("err: ",err));
-    }).catch(err=> console.log(err))
+      fs.writeFile(`${__dirname}/db/db.json`, JSON.stringify(array), err => {});
+    }).catch(err=> res.json(err));
 
-  console.log("body ", body);
   res.json(newNote);
 });
 
+// delete selected file
+app.delete("/api/notes" + "*", function(req, res) { // use wildcard to catch any id
 
-app.delete("/api/notes" + "*", function(req, res) {
-
-  console.log("req route sliced :  ",req.originalUrl.slice(req.originalUrl.length - 3));
-  let urlID = req.originalUrl.slice(req.originalUrl.length - 3);
+  let urlID = req.originalUrl.slice(req.originalUrl.length - 3); // get last 3 digits of request url
   let index;
 
-  if(parseInt(urlID[0])){           //get index of note to delete
-    index = urlID;
+  //get the correct index from the request url
+  // accounts for 3 digit indexes
+  if(parseInt(urlID[0])){           
+    index = urlID;  
   } else if(parseInt(urlID[1])){
     index = req.originalUrl.slice(req.originalUrl.length - 2);
   } else{
     index = req.originalUrl.slice(req.originalUrl.length - 1);
   }
-  console.log("index ", index);
 
-  readDBFile().then(data => {
+  readDBFile().then(data => { // get the existing database file
     let array = JSON.parse(data);
-    console.log("array data : ", array);
-    let newFile = array.filter(i => String(i.id) !== String(index));
-    console.log("new file ", newFile);
-    fs.writeFile(`${__dirname}/db/db.json`, JSON.stringify(newFile), err => console.log("err: ",err));
+    let newFile = array.filter(i => String(i.id) !== String(index)); // get all the elements that do not match the id to delete
+    //save everything but the file to delete
+    fs.writeFile(`${__dirname}/db/db.json`, JSON.stringify(newFile), err => {});
 
   })
-  .catch(err =>{console.log("returned error ", err)});
+  .catch(err =>res.json(err));
 
   res.json(true);
 });
 
+// Return a promise of the asynchronus read function
 function readDBFile() {
-
   return new Promise(function(resolve, reject) {
     fs.readFile(`${__dirname}/db/db.json`, "utf8", function(err, data) {
       if (err) {
@@ -91,6 +94,14 @@ function readDBFile() {
   });
 }
 
+//set index to 1 higher than highest existing index
+function setIndex(data){
+  data.forEach(element => {
+    if (element.id > noteIndex){
+      noteIndex = element.id + 1;
+    }
+  });
+}
 
 // Activate server listener
   app.listen(PORT, function() {
